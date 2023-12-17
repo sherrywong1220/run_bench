@@ -112,11 +112,11 @@ function func_main() {
     mkdir -p ${DIR}/results/${BENCH_NAME}/${VER}/${MEM_POLICY}
     LOG_DIR=${DIR}/results/${BENCH_NAME}/${VER}/${MEM_POLICY}
 
-    cat /proc/vmstat | grep -e thp -e htmm -e pgmig > ${LOG_DIR}/before_vmstat.log 
+    cat /proc/vmstat | grep -e thp -e htmm -e migrate > ${LOG_DIR}/before_vmstat.log 
     func_cache_flush
     sleep 2
 
-    ${DIR}/scripts/memstat.sh ${LOG_DIR} &
+    ${DIR}/scripts/vmstat.sh ${LOG_DIR} &
     if [[ "x${BENCH_NAME}" =~ "xsilo" ]]; then
 	${TIME} -f "execution time %e (s)" \
 	    ${PINNING} ${BENCH_RUN} 2>&1 \
@@ -127,8 +127,8 @@ function func_main() {
 	    | tee ${LOG_DIR}/output.log
     fi
 
-    sudo killall -9 memstat.sh
-    cat /proc/vmstat | grep -e thp -e htmm -e pgmig > ${LOG_DIR}/after_vmstat.log
+    sudo killall -9 vmstat.sh
+    cat /proc/vmstat | grep -e thp -e htmm -e migrate > ${LOG_DIR}/after_vmstat.log
     sleep 2
 
     if [[ "x${BENCH_NAME}" == "xbtree" ]]; then
