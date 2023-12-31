@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# TODO, change DIR
-DIR=/home/jieliu/sherrywang/pagemigration
+DIR=/home/jieliu/sherrywang/pagemigration/run_bench
 
 function func_cache_flush() {
     echo 3 > /proc/sys/vm/drop_caches
@@ -12,7 +11,10 @@ function func_cache_flush() {
 function func_prepare() {
     echo "Preparing benchmark start..."
 
+	swapoff -a
 	sudo sysctl kernel.perf_event_max_sample_rate=100000
+
+	export OMP_NUM_THREADS=32
 
     if [[ -e ${DIR}/config_settings/${VER}.sh ]]; then
 	    source ${DIR}/config_settings/${VER}.sh
@@ -36,6 +38,20 @@ function func_prepare() {
 	    echo "ERROR: ${MEM_POLICY}.sh does not exist."
 	    exit -1
 	fi
+}
+
+function func_usage() {
+    echo
+    echo -e "Usage: $0 [-B benchmark] [-V version] [-M mempolicy] [-LM localmem]..."
+    echo
+    echo "  -B,   --benchmark   [arg]    benchmark name to run. e.g., Graph500, XSBench, etc"
+    echo "  -V,   --version     [arg]    version to run. e.g., autonuma, TPP, etc"
+	echo "  -M,   --mempolicy   [arg]    memory policy to run. e.g., cpu1.membind0_1_2, cpu1.membind1_2, etc"
+	echo "  -LM,  --localmem    [arg]    local memory size. e.g., 65G, 105G, etc"
+    echo "        --cxl                  enable cxl mode [default: disabled]"
+    echo "  -?,   --help"
+    echo "        --usage"
+    echo
 }
 
 # get options:
@@ -64,6 +80,16 @@ while (( "$#" )); do
 	-M|--mempolicy)
 	    if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
 		MEM_POLICY=( "$2" )
+		shift 2
+	    else
+		echo "Error: Argument for $1 is missing" >&2
+		func_usage
+		exit -1
+	    fi
+	    ;;
+	-LM|--localmem)
+	    if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
+		LOCAL_MEM=( "$2" )
 		shift 2
 	    else
 		echo "Error: Argument for $1 is missing" >&2
@@ -109,8 +135,8 @@ function func_main() {
     fi
 
     # make directory for results
-    mkdir -p ${DIR}/results/${BENCH_NAME}/${VER}/${MEM_POLICY}
-    LOG_DIR=${DIR}/results/${BENCH_NAME}/${VER}/${MEM_POLICY}
+    mkdir -p ${DIR}/results/${BENCH_NAME}/${VER}/${MEM_POLICY}/${LOCAL_MEM}
+    LOG_DIR=${DIR}/results/${BENCH_NAME}/${VER}/${MEM_POLICY}/${LOCAL_MEM}
 
     cat /proc/vmstat | grep -e thp -e htmm -e migrate > ${LOG_DIR}/before_vmstat.log 
     func_cache_flush
@@ -118,10 +144,14 @@ function func_main() {
 
     ${DIR}/scripts/vmstat.sh ${LOG_DIR} &
     if [[ "x${BENCH_NAME}" =~ "xsilo" ]]; then
+	CMD="${TIME} -f 'execution time %e (s)' ${PINNING} ${BENCH_RUN} 2>&1 | tee ${LOG_DIR}/output.log"
+	echo ${CMD}
 	${TIME} -f "execution time %e (s)" \
 	    ${PINNING} ${BENCH_RUN} 2>&1 \
 	    | tee ${LOG_DIR}/output.log
     else
+	CMD="${TIME} -f 'execution time %e (s)' ${PINNING} ${BENCH_RUN} 2>&1 | tee ${LOG_DIR}/output.log"
+	echo ${CMD}
 	${TIME} -f "execution time %e (s)" \
 	    ${PINNING} ${BENCH_RUN} 2>&1 \
 	    | tee ${LOG_DIR}/output.log
