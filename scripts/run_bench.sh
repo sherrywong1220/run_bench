@@ -1,6 +1,7 @@
 #!/bin/bash
 
-DIR=/home/jieliu/sherrywang/pagemigration/run_bench
+# Todo: change DIR
+export DIR=/path/run_bench
 
 function func_cache_flush() {
     echo 3 > /proc/sys/vm/drop_caches

@@ -7,12 +7,12 @@ MEM_POLICYS="cpu1.membind1_2 cpu1.membind0_1 cpu1.membind0_1_2 cpu1.interleave0_
 # sudo dmesg -c
 
 # VER="autonuma"
-VER="tiering-0.8"
+# VER="tiering-0.8"
 # VER="tpp"
-#LOCAL_DRAM_SIZE="65G"
+VER="memtis"
+LOCAL_DRAM_SIZE="65G"
 #LOCAL_DRAM_SIZE="100G"
-LOCAL_DRAM_SIZE="120G"
-
+#LOCAL_DRAM_SIZE="120G"
 
 CURRENT_TIME=$(date "+%Y.%m.%d-%H.%M.%S")
 
