@@ -12,8 +12,14 @@ function func_cache_flush() {
 function func_prepare() {
     echo "Preparing benchmark start..."
 
+	ulimit -m unlimited
+	ulimit -v unlimited
+	ulimit -d unlimited
+	ulimit -s unlimited
+
 	swapoff -a
 	sudo sysctl kernel.perf_event_max_sample_rate=100000
+	echo 1 > /sys/kernel/debug/tracing/events/migrate/mm_migrate_pages/enable
 
 	export OMP_NUM_THREADS=32
 
@@ -170,6 +176,8 @@ function func_main() {
 	cat ${LOG_DIR}/output.log | grep -e '0 throughput' -e '5 throughput' \
 	    | awk ' { print $4 }' > ${LOG_DIR}/throughput.out
     fi
+
+	sudo cat /sys/kernel/debug/tracing/trace > ${LOG_DIR}/trace.txt
 
     sudo dmesg -c > ${LOG_DIR}/dmesg.txt
 }

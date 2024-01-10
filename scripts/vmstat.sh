@@ -2,6 +2,16 @@
 
 TARGET=$1
 
+rm -f ${TARGET}/numa_pages_migrated.txt
+rm -f ${TARGET}/pgmig_suc.txt
+rm -f ${TARGET}/pgmig_fail.txt
+rm -f ${TARGET}/thp_pgmig_suc.txt
+rm -f ${TARGET}/thp_pgmig_fail.txt
+rm -f ${TARGET}/thp_pgmig_split.txt
+rm -f ${TARGET}/pgpromote_success.txt
+rm -f ${TARGET}/pgdemote_kswapd.txt
+rm -f ${TARGET}/pgdemote_direct.txt
+
 while :
 do
     cat /proc/vmstat | grep numa_pages_migrated >> ${TARGET}/numa_pages_migrated.txt
