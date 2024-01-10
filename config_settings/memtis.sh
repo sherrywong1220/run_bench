@@ -43,4 +43,8 @@ function func_memtis_setting() {
 }
 
 sudo echo 0 > /proc/sys/kernel/numa_balancing
+<<<<<<< Updated upstream
 func_memtis_setting
+=======
+func_memtis_setting
+>>>>>>> Stashed changes
