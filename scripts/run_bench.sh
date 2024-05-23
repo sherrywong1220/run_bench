@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Todo: change DIR
-export DIR=/path/run_bench
+export DIR=/home/dongl/run_bench
 
 function func_cache_flush() {
     echo 3 > /proc/sys/vm/drop_caches
@@ -17,11 +17,9 @@ function func_prepare() {
 	ulimit -d unlimited
 	ulimit -s unlimited
 
-	swapoff -a
 	sudo sysctl kernel.perf_event_max_sample_rate=100000
-	echo 1 > /sys/kernel/debug/tracing/events/migrate/mm_migrate_pages/enable
+	# echo 1 > /sys/kernel/debug/tracing/events/migrate/mm_migrate_pages/enable
 
-	export OMP_NUM_THREADS=32
 
     if [[ -e ${DIR}/config_settings/${VER}.sh ]]; then
 	    source ${DIR}/config_settings/${VER}.sh
@@ -29,6 +27,7 @@ function func_prepare() {
 	    echo "ERROR: ${VER}.sh does not exist."
 	    exit -1
 	fi
+	sudo killall -9 vmstat.sh
 	
 	DATE=$(date +%Y%m%d%H%M)
 
@@ -145,27 +144,27 @@ function func_main() {
     mkdir -p ${DIR}/results/${BENCH_NAME}/${VER}/${MEM_POLICY}/${LOCAL_MEM}
     LOG_DIR=${DIR}/results/${BENCH_NAME}/${VER}/${MEM_POLICY}/${LOCAL_MEM}
 
-    cat /proc/vmstat | grep -e thp -e htmm -e migrate > ${LOG_DIR}/before_vmstat.log 
+	cat /proc/vmstat | grep -e thp -e htmm -e migrate -e pgpromote -e pgdemote -e numa -e promote > ${LOG_DIR}/before_vmstat.log
     func_cache_flush
     sleep 2
 
     ${DIR}/scripts/vmstat.sh ${LOG_DIR} &
     if [[ "x${BENCH_NAME}" =~ "xsilo" ]]; then
-	CMD="${TIME} -f 'execution time %e (s)' ${PINNING} ${BENCH_RUN} 2>&1 | tee ${LOG_DIR}/output.log"
+	CMD="stdbuf -oL -eL ${TIME} -f 'execution time %e (s)' ${PINNING} ${BENCH_RUN} 2>&1 | tee ${LOG_DIR}/output.log"
 	echo ${CMD}
-	${TIME} -f "execution time %e (s)" \
+	stdbuf -oL -eL ${TIME} -f "execution time %e (s)" \
 	    ${PINNING} ${BENCH_RUN} 2>&1 \
 	    | tee ${LOG_DIR}/output.log
     else
-	CMD="${TIME} -f 'execution time %e (s)' ${PINNING} ${BENCH_RUN} 2>&1 | tee ${LOG_DIR}/output.log"
+	CMD="stdbuf -oL -eL ${TIME} -f 'execution time %e (s)' ${PINNING} ${BENCH_RUN} 2>&1 | tee ${LOG_DIR}/output.log"
 	echo ${CMD}
-	${TIME} -f "execution time %e (s)" \
+	stdbuf -oL -eL ${TIME} -f "execution time %e (s)" \
 	    ${PINNING} ${BENCH_RUN} 2>&1 \
 	    | tee ${LOG_DIR}/output.log
     fi
 
     sudo killall -9 vmstat.sh
-    cat /proc/vmstat | grep -e thp -e htmm -e migrate > ${LOG_DIR}/after_vmstat.log
+	cat /proc/vmstat | grep -e thp -e htmm -e migrate -e pgpromote -e pgdemote -e numa -e promote > ${LOG_DIR}/after_vmstat.log
     sleep 2
 
     if [[ "x${BENCH_NAME}" == "xbtree" ]]; then
@@ -177,7 +176,7 @@ function func_main() {
 	    | awk ' { print $4 }' > ${LOG_DIR}/throughput.out
     fi
 
-	sudo cat /sys/kernel/debug/tracing/trace > ${LOG_DIR}/trace.txt
+	# sudo cat /sys/kernel/debug/tracing/trace > ${LOG_DIR}/trace.txt
 
     sudo dmesg -c > ${LOG_DIR}/dmesg.txt
 }
